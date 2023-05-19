@@ -19,7 +19,7 @@ module.exports = {
     }
   },
 
-  vieCreate : async (req, res) => {
+  viewCreate : async (req, res) => {
     try {
       res.render("admin/category/create");
     } catch (err) {
