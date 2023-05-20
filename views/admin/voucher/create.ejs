@@ -47,8 +47,8 @@
                   <label for="coinName">Kategori</label>
                   <select
                     class="form-control select2"
-                    id="coinName"
-                    name="coinName"
+                    id="category"
+                    name="category"
                     required
                   >
                     <option value="">Pilih koin</option>
@@ -73,7 +73,7 @@
                     >
                       <% nominal.forEach(nominal => { %>
                       <option value="<%= nominal._id %>">
-                        <%= nominal.coinName %> <%= nominal.price %>
+                        <%= nominal.coinName %> <%= nominal.coinQuantity %>
                       </option>
                       <% }); %>
                     </select>

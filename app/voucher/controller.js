@@ -5,7 +5,6 @@ const path = require("path");
 const fs = require("fs");
 const config = require("../../config");
 
-
 module.exports = {
   index: async (req, res) => {
     try {
@@ -13,7 +12,9 @@ module.exports = {
       const alertStatus = req.flash("alertStatus");
       const alert = { message: alertMessage, status: alertStatus };
 
-      const voucher = await Voucher.find();
+      const voucher = await Voucher.find()
+        .populate("category")
+        .populate("nominal");
       res.render("admin/voucher/view_voucher", {
         voucher,
         alert,
@@ -31,9 +32,8 @@ module.exports = {
       const nominal = await Nominal.find();
       res.render("admin/voucher/create", {
         category,
-        nominal
+        nominal,
       });
-
     } catch (err) {
       req.flash("alertMessage", `${err.message}`);
       req.flash("alertStatus", "danger");
@@ -45,19 +45,30 @@ module.exports = {
     try {
       const { name, category, nominal } = req.body;
 
-      if(req.file){
+      if (req.file) {
         let tmp_path = req.file.path;
-        let originalExt = req.file.originalname.split('.')[req.file.originalname.split('.').length - 1];
-        let filename = req.file.filename + '.' + originalExt;
-        let target_path = path.resolve(config.rootPath, `public/uploads/${filename}`);
+        let originalExt =
+          req.file.originalname.split(".")[
+            req.file.originalname.split(".").length - 1
+          ];
+        let filename = req.file.filename + "." + originalExt;
+        let target_path = path.resolve(
+          config.rootPath,
+          `public/uploads/${filename}`,
+        );
 
         const src = fs.createReadStream(tmp_path);
         const dest = fs.createWriteStream(target_path);
-        
+
         src.pipe(dest);
-        src.on('end', async () => {
+        src.on("end", async () => {
           try {
-            const voucher = await Voucher({ name, category, nominal, thumbnail: filename });
+            const voucher = await Voucher({
+              name,
+              category,
+              nominal,
+              thumbnail: filename,
+            });
             await voucher.save();
 
             req.flash("alertMessage", "Berhasil tambah voucher");
@@ -69,9 +80,8 @@ module.exports = {
             req.flash("alertStatus", "danger");
             res.redirect("/voucher");
           }
-            
-        })
-      }else{
+        });
+      } else {
         const voucher = await Voucher({ name, category, nominal });
         await voucher.save();
 
@@ -87,55 +97,138 @@ module.exports = {
     }
   },
 
-  // viewEdit: async (req, res) => {
-  //   try {
-  //     const { id } = req.params;
-  //     const voucher = await voucher.findOne({ _id: id });
-  //     res.render("admin/voucher/edit", { voucher });
-  //   } catch (err) {
-  //     req.flash("alertMessage", `${err.message}`);
-  //     req.flash("alertStatus", "danger");
-  //     res.redirect("/voucher");
-  //   }
-  // },
+  viewEdit: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const category = await Category.find();
+      const nominal = await Nominal.find();
+      const voucher = await Voucher.findOne({ _id: id })
+        .populate("category")
+        .populate("nominal");
+      res.render("admin/voucher/edit", { voucher, category, nominal });
+    } catch (err) {
+      req.flash("alertMessage", `${err.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/voucher");
+    }
+  },
 
-  //   actionEdit: async (req, res) => {
-  //     try {
-  //       const { id } = req.params;
-  //       const { coinName, coinQuantity, price } = req.body;
-  //       await voucher.findOneAndUpdate(
-  //         {
-  //           _id: id,
-  //         },
-  //         { coinName, coinQuantity, price },
-  //       );
+  actionEdit: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, category, nominal } = req.body;
 
-  //       req.flash("alertMessage", "Berhasil ubah voucher");
-  //       req.flash("alertStatus", "success");
+      if (req.file) {
+        let tmp_path = req.file.path;
+        let originalExt =
+          req.file.originalname.split(".")[
+            req.file.originalname.split(".").length - 1
+          ];
+        let filename = req.file.filename + "." + originalExt;
+        let target_path = path.resolve(
+          config.rootPath,
+          `public/uploads/${filename}`,
+        );
 
-  //       res.redirect("/voucher");
-  //     } catch (err) {
-  //       req.flash("alertMessage", `${err.message}`);
-  //       req.flash("alertStatus", "danger");
-  //       res.redirect("/voucher");
-  //     }
-  //   },
+        const src = fs.createReadStream(tmp_path);
+        const dest = fs.createWriteStream(target_path);
 
-  //   actionDelete: async (req, res) => {
-  //     try {
-  //       const { id } = req.params;
-  //       await voucher.findOneAndRemove({
-  //         _id: id,
-  //       });
+        src.pipe(dest);
+        src.on("end", async () => {
+          try {
+            const voucher = await Voucher.findOne({ _id: id });
 
-  //       req.flash("alertMessage", "Berhasil hapus voucher");
-  //       req.flash("alertStatus", "success");
+            let currentImage = `${config.rootPath}/public/uploads/${voucher.thumbnail}`;
 
-  //       res.redirect("/voucher");
-  //     } catch (err) {
-  //       req.flash("alertMessage", `${err.message}`);
-  //       req.flash("alertStatus", "danger");
-  //       res.redirect("/voucher");
-  //     }
-  //   },
+            if (fs.existsSync(currentImage)) {
+              fs.unlinkSync(currentImage);
+            }
+
+            await Voucher.findOneAndUpdate(
+              {
+                _id: id,
+              },
+              { name, category, nominal, thumbnail: filename },
+            );
+
+            await voucher.save();
+
+            req.flash("alertMessage", "Berhasil ubah voucher");
+            req.flash("alertStatus", "success");
+
+            res.redirect("/voucher");
+          } catch (err) {
+            req.flash("alertMessage", `${err.message}`);
+            req.flash("alertStatus", "danger");
+            res.redirect("/voucher");
+          }
+        });
+      } else {
+        await Voucher.findOneAndUpdate(
+          {
+            _id: id,
+          },
+          { name, category, nominal },
+        );
+
+        req.flash("alertMessage", "Berhasil ubah voucher");
+        req.flash("alertStatus", "success");
+
+        res.redirect("/voucher");
+      }
+    } catch (err) {
+      req.flash("alertMessage", `${err.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/voucher");
+    }
+  },
+
+  actionDelete: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const voucher = await Voucher.findOneAndRemove({
+        _id: id,
+      });
+
+      let currentImage = `${config.rootPath}/public/uploads/${voucher.thumbnail}`;
+
+      if (fs.existsSync(currentImage)) {
+        fs.unlinkSync(currentImage);
+      }
+
+      req.flash("alertMessage", "Berhasil hapus voucher");
+      req.flash("alertStatus", "success");
+
+      res.redirect("/voucher");
+    } catch (err) {
+      req.flash("alertMessage", `${err.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/voucher");
+    }
+  },
+
+  actionStatus: async (req, res) => {
+    try {
+      const { id } = req.params;
+      let voucher = await Voucher.findOne({ _id: id });
+
+      let status = voucher.status === "Y" ? "N" : "Y";
+
+      voucher = await Voucher.findOneAndUpdate(
+        {
+          _id: id,
+        },
+        { status },
+      );
+
+      req.flash("alertMessage", "Berhasil ubah status");
+      req.flash("alertStatus", "success");
+
+      res.redirect("/voucher");
+    } catch (err) {
+      req.flash("alertMessage", `${err.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/voucher");
+    }
+  },
 };
