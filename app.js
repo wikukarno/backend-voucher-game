@@ -14,6 +14,7 @@ const voucherRouter = require("./app/voucher/router");
 const bankRouter = require("./app/bank/router");
 const paymentRouter = require("./app/payment/router");
 const usersRouter = require("./app/users/router");
+const transactionRouter = require("./app/transaction/router");
 
 var app = express();
 
@@ -21,23 +22,22 @@ var app = express();
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
-app.use(session({
-  secret: "keyboard cat",
-  resave: false,
-  saveUninitialized: true,
-  cookie: {  },
-}))
+app.use(
+  session({
+    secret: "keyboard cat",
+    resave: false,
+    saveUninitialized: true,
+    cookie: {},
+  }),
+);
 app.use(flash());
-app.use(methodOverride("_method"))
+app.use(methodOverride("_method"));
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
-app.use(
-  "/adminlte",
-  express.static(path.join(__dirname, "/public/adminlte/")),
-);
+app.use("/adminlte", express.static(path.join(__dirname, "/public/adminlte/")));
 
 app.use("/", usersRouter);
 app.use("/dashboard", dashboardRouter);
@@ -46,6 +46,7 @@ app.use("/nominal", nominalRouter);
 app.use("/voucher", voucherRouter);
 app.use("/bank", bankRouter);
 app.use("/payment", paymentRouter);
+app.use("/transaction", transactionRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
